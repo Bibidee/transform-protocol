@@ -9,7 +9,6 @@ import React, {
 } from "react";
 import {
   connectInjectedWallet,
-  getConnectedAccounts,
   switchToStudionet,
 } from "@/lib/wallet/injected";
 import { setClientFromAddress, clearClient } from "@/lib/genlayer/client";
@@ -41,14 +40,6 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getConnectedAccounts().then(async (accounts) => {
-      if (accounts.length > 0) {
-        setAddress(accounts[0]);
-        setClientFromAddress(accounts[0]);
-        await switchToStudionet();
-      }
-    });
-
     if (typeof window !== "undefined" && window.ethereum) {
       const handleAccountsChanged = (...args: unknown[]) => {
         const accounts = args[0] as string[];
