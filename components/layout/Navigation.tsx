@@ -106,33 +106,24 @@ export function Navigation() {
         {/* Right side */}
         <div className="flex items-center gap-2">
           {address ? (
-            <div className="hidden md:flex items-center gap-2">
-              <div
-                style={{
-                  background: "rgba(47,133,90,0.15)",
-                  border: "1px solid rgba(47,133,90,0.3)",
-                  color: "rgba(100,220,140,0.9)",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "11px",
-                }}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded"
-              >
-                <span
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{ background: "#4ade80" }}
-                />
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: "6px",
+                padding: "5px 10px", borderRadius: "6px",
+                background: "rgba(47,133,90,0.15)", border: "1px solid rgba(47,133,90,0.3)",
+                color: "rgba(100,220,140,0.9)", fontFamily: "var(--font-mono)", fontSize: "11px",
+                whiteSpace: "nowrap",
+              }}>
+                <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#4ade80", flexShrink: 0 }} />
                 {shortAddress(address)}
               </div>
-              <button
-                onClick={disconnect}
-                style={{
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  color: "rgba(255,255,255,0.4)",
-                  fontSize: "11px",
-                  background: "transparent",
-                }}
-                className="px-2.5 py-1 rounded hover:border-[rgba(183,92,61,0.5)] hover:text-[var(--color-rose)] transition-colors"
-              >
+              <button onClick={disconnect} style={{
+                display: "inline-flex", alignItems: "center",
+                padding: "5px 12px", borderRadius: "6px",
+                border: "1px solid rgba(255,255,255,0.15)",
+                color: "rgba(255,255,255,0.5)", fontSize: "11px",
+                background: "transparent", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
+              }}>
                 Disconnect
               </button>
             </div>
