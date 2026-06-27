@@ -7,23 +7,41 @@ import { TransactionCommandBar } from "@/components/transaction/TransactionComma
 import { SIGNAL_TYPES, STAKEHOLDER_GROUPS } from "@/lib/constants/config";
 import { READINESS_DOMAINS } from "@/lib/constants/domains";
 import type { SignalFormData, TxState } from "@/types";
+import { Loader2 } from "lucide-react";
 
 const EMPTY: SignalFormData = {
-  title: "",
-  stakeholder_group: "",
-  signal_type: "",
-  readiness_implication: "",
-  resistance_level: "NONE",
-  confidence_level: "MEDIUM",
-  evidence_url: "",
-  source_credibility_note: "",
-  related_domain: "",
+  title: "", stakeholder_group: "", signal_type: "", readiness_implication: "",
+  resistance_level: "NONE", confidence_level: "MEDIUM",
+  evidence_url: "", source_credibility_note: "", related_domain: "",
 };
 
-interface AddSignalFormProps {
-  caseId: string;
-  onSuccess?: () => void;
+const INPUT_CSS = `
+.sig-input {
+  width: 100%; padding: 10px 14px; border-radius: 9px;
+  border: 1.5px solid #C8D2F0; background: #FFFFFF;
+  font-family: inherit; font-size: 13px; color: #0F172A;
+  outline: none; transition: border-color 0.15s, box-shadow 0.15s; resize: vertical;
 }
+.sig-input::placeholder { color: #9AAABF; }
+.sig-input:focus { border-color: #2655FF; box-shadow: 0 0 0 3px rgba(38,85,255,0.12); }
+.sig-input.err { border-color: #C24B2A; }
+`;
+
+const RESISTANCE_COLORS: Record<string, string> = {
+  NONE: "#1A7A4A", LOW: "#D4900A", MODERATE: "#2655FF", HIGH: "#C24B2A", BLOCKING: "#991b1b",
+};
+
+function Label({ children }: { children: React.ReactNode }) {
+  return <label style={{ fontSize: "11px", fontWeight: 700, color: "#1E0B3B", letterSpacing: "0.06em", textTransform: "uppercase" as const, display: "block", marginBottom: "5px" }}>{children}</label>;
+}
+function Err({ msg }: { msg?: string }) {
+  return msg ? <p style={{ fontSize: "11px", color: "#C24B2A", fontWeight: 600, marginTop: "4px" }}>{msg}</p> : null;
+}
+function Hint({ msg }: { msg?: string }) {
+  return msg ? <p style={{ fontSize: "11px", color: "#8492B4", marginTop: "4px" }}>{msg}</p> : null;
+}
+
+interface AddSignalFormProps { caseId: string; onSuccess?: () => void; }
 
 export function AddSignalForm({ caseId, onSuccess }: AddSignalFormProps) {
   const [form, setForm] = useState<SignalFormData>(EMPTY);
@@ -31,7 +49,7 @@ export function AddSignalForm({ caseId, onSuccess }: AddSignalFormProps) {
   const [tx, setTx] = useState<TxState>(idleTxState());
   const [submitting, setSubmitting] = useState(false);
 
-  const setField = (name: keyof SignalFormData, value: string) => {
+  const set = (name: keyof SignalFormData, value: string) => {
     setForm(p => ({ ...p, [name]: value }));
     setErrors(p => ({ ...p, [name]: undefined }));
   };
@@ -40,110 +58,129 @@ export function AddSignalForm({ caseId, onSuccess }: AddSignalFormProps) {
     const result = signalSchema.safeParse(form);
     if (!result.success) {
       const fe: Partial<Record<keyof SignalFormData, string>> = {};
-      for (const issue of result.error.issues) {
-        const p = issue.path[0] as keyof SignalFormData;
-        if (!fe[p]) fe[p] = issue.message;
-      }
-      setErrors(fe);
-      return;
+      for (const issue of result.error.issues) { const p = issue.path[0] as keyof SignalFormData; if (!fe[p]) fe[p] = issue.message; }
+      setErrors(fe); return;
     }
-    setSubmitting(true);
-    setTx(buildTxState("signing"));
+    setSubmitting(true); setTx(buildTxState("signing"));
     try {
       const res = await addSignal(caseId, form, s => setTx(buildTxState(s)));
       setTx(buildTxState("finalized", res.txHash));
-      setForm(EMPTY);
-      onSuccess?.();
+      setForm(EMPTY); onSuccess?.();
     } catch (e) {
       setTx(buildTxState("error", null, e instanceof Error ? e.message : "Failed to add signal"));
       setSubmitting(false);
     }
   };
 
-  const input = (name: keyof SignalFormData, label: string, placeholder?: string, multiline?: boolean, rows = 2) => (
-    <div>
-      <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--color-plum)", marginBottom: "0.35rem" }}>
-        {label}
-      </label>
-      {multiline
-        ? <textarea rows={rows} value={form[name]} onChange={e => setField(name, e.target.value)} placeholder={placeholder}
-            style={{ width: "100%", padding: "0.55rem 0.7rem", borderRadius: "8px", border: `1px solid ${errors[name] ? "var(--color-clay)" : "var(--color-sand)"}`, background: "var(--color-glass)", fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--color-ink)", resize: "vertical", outline: "none" }} />
-        : <input type="text" value={form[name]} onChange={e => setField(name, e.target.value)} placeholder={placeholder}
-            style={{ width: "100%", padding: "0.55rem 0.7rem", borderRadius: "8px", border: `1px solid ${errors[name] ? "var(--color-clay)" : "var(--color-sand)"}`, background: "var(--color-glass)", fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--color-ink)", outline: "none" }} />
-      }
-      {errors[name] && <p style={{ fontSize: "11px", color: "var(--color-clay)", marginTop: "0.2rem" }}>{errors[name]}</p>}
-    </div>
-  );
-
-  const select = (name: keyof SignalFormData, label: string, options: string[], withEmpty = true) => (
-    <div>
-      <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--color-plum)", marginBottom: "0.35rem" }}>{label}</label>
-      <select value={form[name]} onChange={e => setField(name, e.target.value)}
-        style={{ width: "100%", padding: "0.55rem 0.7rem", borderRadius: "8px", border: `1px solid ${errors[name] ? "var(--color-clay)" : "var(--color-sand)"}`, background: "var(--color-glass)", fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--color-ink)", outline: "none" }}>
-        {withEmpty && <option value="">Select…</option>}
-        {options.map(o => <option key={o} value={o}>{o}</option>)}
-      </select>
-      {errors[name] && <p style={{ fontSize: "11px", color: "var(--color-clay)", marginTop: "0.2rem" }}>{errors[name]}</p>}
-    </div>
-  );
-
   return (
-    <div className="space-y-4">
-      {input("title", "Signal Title *", "e.g. Middle managers concerned about workload impact")}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {select("stakeholder_group", "Stakeholder Group *", STAKEHOLDER_GROUPS)}
-        {select("signal_type", "Signal Type *", SIGNAL_TYPES)}
-      </div>
-      {input("readiness_implication", "Readiness Implication *", "What does this signal mean for transformation readiness?", true, 3)}
+    <div style={{ display: "flex", flexDirection: "column", gap: "1.1rem" }}>
+      <style>{INPUT_CSS}</style>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* Title */}
+      <div>
+        <Label>Signal Title <span style={{ color: "#2655FF" }}>*</span></Label>
+        <input type="text" value={form.title} onChange={e => set("title", e.target.value)} placeholder="e.g. Senior adjusters resistant to AI oversight tools" className={`sig-input${errors.title ? " err" : ""}`} />
+        <Err msg={errors.title} />
+      </div>
+
+      {/* Group + Type */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
         <div>
-          <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--color-plum)", marginBottom: "0.35rem" }}>Resistance Level</label>
-          <div className="flex gap-1.5 flex-wrap">
-            {(["NONE", "LOW", "MODERATE", "HIGH", "BLOCKING"] as const).map(lvl => {
-              const colors: Record<string, string> = { NONE: "var(--color-green)", LOW: "var(--color-gold)", MODERATE: "var(--color-cobalt)", HIGH: "var(--color-clay)", BLOCKING: "#991b1b" };
-              const active = form.resistance_level === lvl;
-              return (
-                <button key={lvl} type="button" onClick={() => setField("resistance_level", lvl)}
-                  style={{ padding: "0.3rem 0.75rem", borderRadius: "6px", fontSize: "11px", fontWeight: 600,
-                    background: active ? colors[lvl] + "18" : "var(--color-canvas)",
-                    border: `1px solid ${active ? colors[lvl] + "55" : "var(--color-sand)"}`,
-                    color: active ? colors[lvl] : "var(--color-stone)", cursor: "pointer" }}>
-                  {lvl}
-                </button>
-              );
-            })}
-          </div>
+          <Label>Stakeholder Group <span style={{ color: "#2655FF" }}>*</span></Label>
+          <select value={form.stakeholder_group} onChange={e => set("stakeholder_group", e.target.value)} className={`sig-input${errors.stakeholder_group ? " err" : ""}`}>
+            <option value="">Select…</option>
+            {STAKEHOLDER_GROUPS.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+          <Err msg={errors.stakeholder_group} />
         </div>
         <div>
-          <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--color-plum)", marginBottom: "0.35rem" }}>Confidence Level</label>
-          <div className="flex gap-1.5 flex-wrap">
-            {(["LOW", "MEDIUM", "HIGH", "VERY_HIGH"] as const).map(lvl => {
-              const active = form.confidence_level === lvl;
-              return (
-                <button key={lvl} type="button" onClick={() => setField("confidence_level", lvl)}
-                  style={{ padding: "0.3rem 0.75rem", borderRadius: "6px", fontSize: "11px", fontWeight: 600,
-                    background: active ? "var(--color-cobalt-light)" : "var(--color-canvas)",
-                    border: `1px solid ${active ? "rgba(36,87,255,0.3)" : "var(--color-sand)"}`,
-                    color: active ? "var(--color-cobalt)" : "var(--color-stone)", cursor: "pointer" }}>
-                  {lvl.replace("_", " ")}
-                </button>
-              );
-            })}
-          </div>
+          <Label>Signal Type <span style={{ color: "#2655FF" }}>*</span></Label>
+          <select value={form.signal_type} onChange={e => set("signal_type", e.target.value)} className={`sig-input${errors.signal_type ? " err" : ""}`}>
+            <option value="">Select…</option>
+            {SIGNAL_TYPES.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+          <Err msg={errors.signal_type} />
         </div>
       </div>
 
-      {input("evidence_url", "Evidence URL", "https://…public URL to supporting evidence for this signal")}
-      {input("source_credibility_note", "Source Credibility Note", "e.g. Internal survey of 120 middle managers, conducted March 2026")}
-      {select("related_domain", "Related Readiness Domain", READINESS_DOMAINS.map(d => d.name))}
+      {/* Readiness implication */}
+      <div>
+        <Label>Readiness Implication <span style={{ color: "#2655FF" }}>*</span></Label>
+        <textarea rows={3} value={form.readiness_implication} onChange={e => set("readiness_implication", e.target.value)} placeholder="What does this signal mean for transformation readiness?" className={`sig-input${errors.readiness_implication ? " err" : ""}`} />
+        <Err msg={errors.readiness_implication} />
+      </div>
 
-      <TransactionCommandBar tx={tx} />
+      {/* Resistance level */}
+      <div>
+        <Label>Resistance Level</Label>
+        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+          {(["NONE", "LOW", "MODERATE", "HIGH", "BLOCKING"] as const).map(lvl => {
+            const active = form.resistance_level === lvl;
+            const color = RESISTANCE_COLORS[lvl];
+            return (
+              <button key={lvl} type="button" onClick={() => set("resistance_level", lvl)} style={{
+                padding: "6px 14px", borderRadius: "8px", fontSize: "11px", fontWeight: 700,
+                background: active ? color + "18" : "#F5F7FF",
+                border: `1.5px solid ${active ? color : "#C8D2F0"}`,
+                color: active ? color : "#8492B4", cursor: "pointer",
+              }}>{lvl}</button>
+            );
+          })}
+        </div>
+      </div>
 
-      <button onClick={submit} disabled={submitting}
-        style={{ background: submitting ? "var(--color-sand)" : "var(--color-plum)", color: submitting ? "var(--color-stone)" : "white",
-          fontWeight: 600, fontSize: "13px", padding: "0.6rem 1.5rem", borderRadius: "8px", cursor: submitting ? "not-allowed" : "pointer", width: "100%" }}>
-        {submitting ? "Submitting to GenLayer…" : "Add Stakeholder Signal"}
+      {/* Confidence level */}
+      <div>
+        <Label>Confidence Level</Label>
+        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+          {(["LOW", "MEDIUM", "HIGH", "VERY_HIGH"] as const).map(lvl => {
+            const active = form.confidence_level === lvl;
+            return (
+              <button key={lvl} type="button" onClick={() => set("confidence_level", lvl)} style={{
+                padding: "6px 14px", borderRadius: "8px", fontSize: "11px", fontWeight: 700,
+                background: active ? "rgba(38,85,255,0.1)" : "#F5F7FF",
+                border: `1.5px solid ${active ? "#2655FF" : "#C8D2F0"}`,
+                color: active ? "#2655FF" : "#8492B4", cursor: "pointer",
+              }}>{lvl.replace("_", " ")}</button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Related domain */}
+      <div>
+        <Label>Related Readiness Domain</Label>
+        <select value={form.related_domain} onChange={e => set("related_domain", e.target.value)} className="sig-input">
+          <option value="">Select domain (optional)…</option>
+          {READINESS_DOMAINS.map(d => <option key={d.name} value={d.name}>{d.name.replace(/_/g, " ")}</option>)}
+        </select>
+      </div>
+
+      {/* Evidence URL */}
+      <div>
+        <Label>Evidence URL</Label>
+        <input type="text" value={form.evidence_url} onChange={e => set("evidence_url", e.target.value)} placeholder="https://… public URL supporting this signal" className="sig-input" />
+        <Hint msg="Must be a publicly accessible URL" />
+      </div>
+
+      {/* Credibility note */}
+      <div>
+        <Label>Source Credibility Note</Label>
+        <input type="text" value={form.source_credibility_note} onChange={e => set("source_credibility_note", e.target.value)} placeholder="e.g. Internal survey of 120 adjusters, conducted June 2026" className="sig-input" />
+      </div>
+
+      {tx.status !== "idle" && <TransactionCommandBar tx={tx} />}
+
+      <button onClick={submit} disabled={submitting} style={{
+        display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "8px",
+        background: submitting ? "#C8D2F0" : "linear-gradient(135deg, #2655FF 0%, #5046E5 100%)",
+        color: submitting ? "#8492B4" : "white",
+        fontWeight: 700, fontSize: "13px", padding: "11px 0",
+        borderRadius: "10px", cursor: submitting ? "not-allowed" : "pointer",
+        width: "100%", border: "none",
+        boxShadow: submitting ? "none" : "0 4px 16px rgba(38,85,255,0.3)",
+      }}>
+        {submitting ? <><Loader2 size={14} className="animate-spin-slow" /> Submitting to GenLayer…</> : "Add Stakeholder Signal"}
       </button>
     </div>
   );
