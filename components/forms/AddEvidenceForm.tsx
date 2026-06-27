@@ -5,7 +5,7 @@ import { evidenceSchema } from "@/lib/validation/evidenceSchema";
 import { addEvidence, buildTxState, idleTxState } from "@/lib/genlayer/contractService";
 import { TransactionCommandBar } from "@/components/transaction/TransactionCommandBar";
 import type { EvidenceFormData, TxState, EvidenceCategory } from "@/types";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 
 const CATEGORIES: EvidenceCategory[] = [
   "TRANSFORMATION_ROADMAP", "PROJECT_CHARTER", "STAKEHOLDER_SURVEY",
@@ -27,10 +27,27 @@ const EMPTY: EvidenceFormData = {
   credibility_note: "", relevance_note: "", category: "OTHER",
 };
 
-interface AddEvidenceFormProps {
-  caseId: string;
-  onSuccess?: () => void;
+const INPUT_CSS = `
+.ev-input {
+  width: 100%; padding: 10px 14px; border-radius: 9px;
+  border: 1.5px solid #C8D2F0; background: #FFFFFF;
+  font-family: inherit; font-size: 13px; color: #0F172A;
+  outline: none; transition: border-color 0.15s, box-shadow 0.15s; resize: vertical;
 }
+.ev-input::placeholder { color: #9AAABF; }
+.ev-input:focus { border-color: #2655FF; box-shadow: 0 0 0 3px rgba(38,85,255,0.12); }
+.ev-input.err { border-color: #C24B2A; background: #FFF8F6; }
+`;
+
+function Label({ text, required }: { text: string; required?: boolean }) {
+  return (
+    <label style={{ fontSize: "11px", fontWeight: 700, color: "#1E0B3B", letterSpacing: "0.06em", textTransform: "uppercase" as const, display: "block", marginBottom: "5px" }}>
+      {text}{required && <span style={{ color: "#2655FF", marginLeft: "3px" }}>*</span>}
+    </label>
+  );
+}
+
+interface AddEvidenceFormProps { caseId: string; onSuccess?: () => void; }
 
 export function AddEvidenceForm({ caseId, onSuccess }: AddEvidenceFormProps) {
   const [form, setForm] = useState<EvidenceFormData>(EMPTY);
@@ -38,7 +55,7 @@ export function AddEvidenceForm({ caseId, onSuccess }: AddEvidenceFormProps) {
   const [tx, setTx] = useState<TxState>(idleTxState());
   const [submitting, setSubmitting] = useState(false);
 
-  const setField = (name: keyof EvidenceFormData, value: string) => {
+  const set = (name: keyof EvidenceFormData, value: string) => {
     setForm(p => ({ ...p, [name]: value }));
     setErrors(p => ({ ...p, [name]: undefined }));
   };
@@ -47,82 +64,96 @@ export function AddEvidenceForm({ caseId, onSuccess }: AddEvidenceFormProps) {
     const result = evidenceSchema.safeParse(form);
     if (!result.success) {
       const fe: Partial<Record<keyof EvidenceFormData, string>> = {};
-      for (const issue of result.error.issues) {
-        const p = issue.path[0] as keyof EvidenceFormData;
-        if (!fe[p]) fe[p] = issue.message;
-      }
-      setErrors(fe);
-      return;
+      for (const issue of result.error.issues) { const p = issue.path[0] as keyof EvidenceFormData; if (!fe[p]) fe[p] = issue.message; }
+      setErrors(fe); return;
     }
-    setSubmitting(true);
-    setTx(buildTxState("signing"));
+    setSubmitting(true); setTx(buildTxState("signing"));
     try {
       const res = await addEvidence(caseId, form, s => setTx(buildTxState(s)));
       setTx(buildTxState("finalized", res.txHash));
-      setForm(EMPTY);
-      onSuccess?.();
+      setForm(EMPTY); onSuccess?.();
     } catch (e) {
       setTx(buildTxState("error", null, e instanceof Error ? e.message : "Failed to add evidence"));
       setSubmitting(false);
     }
   };
 
-  const inp = (name: keyof EvidenceFormData, label: string, placeholder?: string, multiline?: boolean) => (
-    <div>
-      <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--color-plum)", marginBottom: "0.35rem" }}>{label}</label>
-      {multiline
-        ? <textarea rows={2} value={form[name]} onChange={e => setField(name, e.target.value)} placeholder={placeholder}
-            style={{ width: "100%", padding: "0.55rem 0.7rem", borderRadius: "8px", border: `1px solid ${errors[name] ? "var(--color-clay)" : "var(--color-sand)"}`, background: "var(--color-glass)", fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--color-ink)", resize: "vertical", outline: "none" }} />
-        : <input type="text" value={form[name]} onChange={e => setField(name, e.target.value)} placeholder={placeholder}
-            style={{ width: "100%", padding: "0.55rem 0.7rem", borderRadius: "8px", border: `1px solid ${errors[name] ? "var(--color-clay)" : "var(--color-sand)"}`, background: "var(--color-glass)", fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--color-ink)", outline: "none" }} />
-      }
-      {errors[name] && <p style={{ fontSize: "11px", color: "var(--color-clay)", marginTop: "0.2rem" }}>{errors[name]}</p>}
-    </div>
-  );
-
   return (
-    <div className="space-y-4">
-      {/* Privacy warning */}
-      <div className="flex items-start gap-2 px-4 py-3 rounded-lg"
-        style={{ background: "var(--color-gold-light)", border: "1px solid rgba(200,155,60,0.25)" }}>
-        <AlertTriangle size={14} style={{ color: "var(--color-gold)", flexShrink: 0, marginTop: "1px" }} />
-        <p style={{ fontSize: "12px", color: "var(--color-ink)", lineHeight: 1.5 }}>
-          <strong>Public URLs only.</strong> Do not submit confidential, private, or restricted organisational documents. Only submit URLs that are intentionally and permanently public. Evidence stored on-chain is immutable.
+    <div style={{ display: "flex", flexDirection: "column", gap: "1.1rem" }}>
+      <style>{INPUT_CSS}</style>
+
+      {/* Warning */}
+      <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", padding: "12px 14px", borderRadius: "10px", background: "rgba(212,144,10,0.07)", border: "1px solid rgba(212,144,10,0.25)" }}>
+        <AlertTriangle size={14} style={{ color: "#D4900A", flexShrink: 0, marginTop: "1px" }} />
+        <p style={{ fontSize: "12px", color: "#4B5675", lineHeight: 1.55 }}>
+          <strong style={{ color: "#1E0B3B" }}>Public URLs only.</strong> Do not submit confidential, private, or restricted documents. Only submit URLs that are intentionally and permanently public. Evidence stored on-chain is immutable.
         </p>
       </div>
 
-      {inp("title", "Evidence Title *", "e.g. AI Adoption Framework — Q1 2026 Public Release")}
+      {/* Title */}
+      <div>
+        <Label text="Evidence Title" required />
+        <input type="text" value={form.title} onChange={e => set("title", e.target.value)} placeholder="e.g. McKinsey AI in Insurance Claims Report 2024" className={`ev-input${errors.title ? " err" : ""}`} />
+        {errors.title && <p style={{ fontSize: "11px", color: "#C24B2A", fontWeight: 600, marginTop: "4px" }}>{errors.title}</p>}
+      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* Type + Category */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
         <div>
-          <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--color-plum)", marginBottom: "0.35rem" }}>Evidence Type *</label>
-          <select value={form.evidence_type} onChange={e => setField("evidence_type", e.target.value)}
-            style={{ width: "100%", padding: "0.55rem 0.7rem", borderRadius: "8px", border: `1px solid ${errors.evidence_type ? "var(--color-clay)" : "var(--color-sand)"}`, background: "var(--color-glass)", fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--color-ink)", outline: "none" }}>
+          <Label text="Evidence Type" required />
+          <select value={form.evidence_type} onChange={e => set("evidence_type", e.target.value)} className={`ev-input${errors.evidence_type ? " err" : ""}`}>
             <option value="">Select…</option>
             {EVIDENCE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
-          {errors.evidence_type && <p style={{ fontSize: "11px", color: "var(--color-clay)", marginTop: "0.2rem" }}>{errors.evidence_type}</p>}
+          {errors.evidence_type && <p style={{ fontSize: "11px", color: "#C24B2A", fontWeight: 600, marginTop: "4px" }}>{errors.evidence_type}</p>}
         </div>
         <div>
-          <label style={{ display: "block", fontSize: "12px", fontWeight: 600, color: "var(--color-plum)", marginBottom: "0.35rem" }}>Category *</label>
-          <select value={form.category} onChange={e => setField("category", e.target.value as EvidenceCategory)}
-            style={{ width: "100%", padding: "0.55rem 0.7rem", borderRadius: "8px", border: "1px solid var(--color-sand)", background: "var(--color-glass)", fontFamily: "var(--font-body)", fontSize: "13px", color: "var(--color-ink)", outline: "none" }}>
+          <Label text="Category" required />
+          <select value={form.category} onChange={e => set("category", e.target.value as EvidenceCategory)} className="ev-input">
             {CATEGORIES.map(c => <option key={c} value={c}>{c.replace(/_/g, " ")}</option>)}
           </select>
         </div>
       </div>
 
-      {inp("url", "Public Evidence URL *", "https://…")}
-      {inp("source_name", "Source Name *", "e.g. McKinsey & Company, ONS, World Bank, Internal PMO")}
-      {inp("credibility_note", "Source Credibility Note", "e.g. Published by the organisation's own PMO in March 2026", true)}
-      {inp("relevance_note", "Relevance to Transformation Question *", "Why is this evidence relevant to the readiness assessment?", true)}
+      {/* URL */}
+      <div>
+        <Label text="Public Evidence URL" required />
+        <input type="text" value={form.url} onChange={e => set("url", e.target.value)} placeholder="https://…" className={`ev-input${errors.url ? " err" : ""}`} />
+        {errors.url && <p style={{ fontSize: "11px", color: "#C24B2A", fontWeight: 600, marginTop: "4px" }}>{errors.url}</p>}
+      </div>
 
-      <TransactionCommandBar tx={tx} />
+      {/* Source name */}
+      <div>
+        <Label text="Source Name" required />
+        <input type="text" value={form.source_name} onChange={e => set("source_name", e.target.value)} placeholder="e.g. McKinsey & Company, ONS, World Bank, Gartner" className={`ev-input${errors.source_name ? " err" : ""}`} />
+        {errors.source_name && <p style={{ fontSize: "11px", color: "#C24B2A", fontWeight: 600, marginTop: "4px" }}>{errors.source_name}</p>}
+      </div>
 
-      <button onClick={submit} disabled={submitting}
-        style={{ background: submitting ? "var(--color-sand)" : "var(--color-plum)", color: submitting ? "var(--color-stone)" : "white",
-          fontWeight: 600, fontSize: "13px", padding: "0.6rem 1.5rem", borderRadius: "8px", cursor: submitting ? "not-allowed" : "pointer", width: "100%" }}>
-        {submitting ? "Submitting to GenLayer…" : "Register Evidence"}
+      {/* Credibility note */}
+      <div>
+        <Label text="Source Credibility Note" />
+        <textarea rows={2} value={form.credibility_note} onChange={e => set("credibility_note", e.target.value)} placeholder="e.g. Published by McKinsey Global Institute, peer-reviewed, publicly accessible" className="ev-input" />
+      </div>
+
+      {/* Relevance */}
+      <div>
+        <Label text="Relevance to Transformation Question" required />
+        <textarea rows={3} value={form.relevance_note} onChange={e => set("relevance_note", e.target.value)} placeholder="Why is this evidence relevant to the readiness assessment? What does it support or demonstrate?" className={`ev-input${errors.relevance_note ? " err" : ""}`} />
+        {errors.relevance_note && <p style={{ fontSize: "11px", color: "#C24B2A", fontWeight: 600, marginTop: "4px" }}>{errors.relevance_note}</p>}
+      </div>
+
+      {tx.status !== "idle" && <TransactionCommandBar tx={tx} />}
+
+      <button onClick={submit} disabled={submitting} style={{
+        display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "8px",
+        background: submitting ? "#C8D2F0" : "linear-gradient(135deg, #D4900A 0%, #C24B2A 100%)",
+        color: submitting ? "#8492B4" : "white",
+        fontWeight: 700, fontSize: "13px", padding: "11px 0",
+        borderRadius: "10px", cursor: submitting ? "not-allowed" : "pointer",
+        width: "100%", border: "none",
+        boxShadow: submitting ? "none" : "0 4px 16px rgba(212,144,10,0.3)",
+      }}>
+        {submitting ? <><Loader2 size={14} className="animate-spin-slow" /> Submitting to GenLayer…</> : "Register Evidence"}
       </button>
     </div>
   );
