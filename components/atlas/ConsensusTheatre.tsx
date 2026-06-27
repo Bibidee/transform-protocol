@@ -8,7 +8,8 @@ import { canRequestConsensus, latestVerdict } from "@/lib/mappers/contractMapper
 import { useWallet } from "@/lib/context/WalletContext";
 import { requestConsensus, buildTxState, idleTxState } from "@/lib/genlayer/contractService";
 import { VERDICT_LABEL_META } from "@/lib/constants/verdictLabels";
-import { Zap, Clock, ChevronDown, ChevronUp, AlertCircle, Layers } from "lucide-react";
+import Link from "next/link";
+import { Zap, Clock, ChevronDown, ChevronUp, AlertCircle, Layers, ArrowRight } from "lucide-react";
 import { CONTRACT_ADDRESS } from "@/lib/constants/config";
 
 interface ConsensusTheatreProps {
@@ -164,19 +165,39 @@ export function ConsensusTheatre({ caseData, onVerdictIssued }: ConsensusTheatre
                 Connect your wallet to request a Consensus Review.
               </p>
             ) : !canRequest ? (
-              <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>
-                {caseData.status === "UNDER_REVIEW"
-                  ? "Consensus review is currently in progress."
-                  : caseData.owner.toLowerCase() !== address.toLowerCase()
-                  ? "Only the dossier owner can request consensus."
-                  : !caseData.implementation_plan
-                  ? "Register an Implementation Plan before requesting consensus."
-                  : caseData.signals.length === 0
-                  ? "Add at least one Stakeholder Signal before requesting consensus."
-                  : caseData.evidence.length === 0
-                  ? "Add at least one Evidence item before requesting consensus."
-                  : "Cannot request consensus at this time."}
-              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {caseData.status === "UNDER_REVIEW" ? (
+                  <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)", textAlign: "center" }}>Consensus review is currently in progress.</p>
+                ) : caseData.owner.toLowerCase() !== address.toLowerCase() ? (
+                  <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)" }}>Only the dossier owner can request consensus.</p>
+                ) : (
+                  <>
+                    <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)", marginBottom: "4px" }}>Complete these steps to unlock the consensus request:</p>
+                    {[
+                      { done: !!caseData.implementation_plan, label: "Implementation Plan registered", href: `/cases/${caseData.case_id}/plan`, action: "Add Plan" },
+                      { done: caseData.signals.length > 0, label: "At least one Stakeholder Signal", href: `/cases/${caseData.case_id}/signals`, action: "Add Signal" },
+                      { done: caseData.evidence.length > 0, label: "At least one Evidence item", href: `/cases/${caseData.case_id}/evidence`, action: "Add Evidence" },
+                    ].map(({ done, label, href, action }) => (
+                      <div key={label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", padding: "10px 14px", borderRadius: "9px", background: done ? "rgba(26,122,74,0.12)" : "rgba(255,255,255,0.05)", border: `1px solid ${done ? "rgba(26,122,74,0.25)" : "rgba(255,255,255,0.08)"}` }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
+                          <div style={{ width: "18px", height: "18px", borderRadius: "50%", background: done ? "#1A7A4A" : "rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            {done
+                              ? <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              : <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "rgba(255,255,255,0.3)" }} />
+                            }
+                          </div>
+                          <span style={{ fontSize: "12px", color: done ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.45)", fontWeight: done ? 500 : 400, textDecoration: done ? "line-through" : "none" }}>{label}</span>
+                        </div>
+                        {!done && (
+                          <Link href={href} style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "5px 12px", borderRadius: "7px", background: "linear-gradient(135deg, #2655FF 0%, #5046E5 100%)", color: "#fff", fontSize: "11px", fontWeight: 700, textDecoration: "none", flexShrink: 0 }}>
+                            {action} <ArrowRight size={10} />
+                          </Link>
+                        )}
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "14px", textAlign: "center" }}>
                 <div>
