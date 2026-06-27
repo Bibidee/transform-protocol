@@ -1,0 +1,150 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Manrope:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  /* === Core Palette === */
+  --color-bg: #E8EDFF;
+  --color-surface: #FFFFFF;
+  --color-surface-2: #F5F7FF;
+  --color-border: #C8D2F0;
+  --color-border-strong: #A0AECE;
+
+  --color-aubergine: #1E0B3B;
+  --color-aubergine-2: #2D1555;
+  --color-cobalt: #2655FF;
+  --color-cobalt-light: rgba(38,85,255,0.10);
+  --color-cobalt-mid: rgba(38,85,255,0.22);
+  --color-indigo: #5046E5;
+  --color-indigo-light: rgba(80,70,229,0.10);
+  --color-gold: #D4900A;
+  --color-gold-light: rgba(212,144,10,0.10);
+  --color-gold-mid: rgba(212,144,10,0.22);
+  --color-clay: #C24B2A;
+  --color-clay-light: rgba(194,75,42,0.09);
+  --color-clay-mid: rgba(194,75,42,0.20);
+  --color-green: #1A7A4A;
+  --color-green-light: rgba(26,122,74,0.09);
+  --color-green-mid: rgba(26,122,74,0.20);
+  --color-rose: #E8B4A6;
+  --color-lavender: #EAE7FF;
+  --color-ink: #0F172A;
+  --color-stone: #4B5675;
+  --color-muted: #8492B4;
+
+  /* Legacy aliases */
+  --color-canvas:     #E8EDFF;
+  --color-plum:       #1E0B3B;
+  --color-plum-light: rgba(30,11,59,0.07);
+  --color-plum-mid:   rgba(30,11,59,0.14);
+  --color-sand:       #C8D2F0;
+  --color-glass:      #FFFFFF;
+  --color-lilac:      #EAE7FF;
+  --color-line:       #C8D2F0;
+  --color-topo:       #E8EDFF;
+  --color-aubergine-light: rgba(30,11,59,0.07);
+  --color-aubergine-mid:   rgba(30,11,59,0.14);
+
+  /* === Typography === */
+  --font-display: "Fraunces", "Georgia", serif;
+  --font-body:    "Manrope", system-ui, sans-serif;
+  --font-mono:    "IBM Plex Mono", monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+code, pre, .mono { font-family: var(--font-mono); }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--color-bg); }
+::-webkit-scrollbar-thumb { background: var(--color-border-strong); border-radius: 3px; }
+
+/* === Inputs — always visible borders === */
+input[type="text"],
+input[type="email"],
+input[type="url"],
+input[type="number"],
+textarea,
+select {
+  font-family: var(--font-body);
+  background: #FFFFFF;
+  border: 1.5px solid var(--color-border);
+  color: var(--color-ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="url"]:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--color-cobalt);
+  box-shadow: 0 0 0 3px rgba(38,85,255,0.12);
+}
+
+input[type="text"]::placeholder,
+input[type="email"]::placeholder,
+textarea::placeholder {
+  color: #9AAABF;
+}
+
+/* === Animations === */
+@keyframes fadeUp   { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeIn   { from{opacity:0} to{opacity:1} }
+@keyframes spinSlow { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+@keyframes orbitFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+@keyframes verdictReveal { 0%{opacity:0;transform:scale(0.97) translateY(8px)} 100%{opacity:1;transform:scale(1) translateY(0)} }
+@keyframes pulseCobalt { 0%,100%{box-shadow:0 0 0 0 rgba(38,85,255,0.35)} 50%{box-shadow:0 0 0 10px rgba(38,85,255,0)} }
+@keyframes pulseGold   { 0%,100%{box-shadow:0 0 0 0 rgba(212,144,10,0.4)}  50%{box-shadow:0 0 0 10px rgba(212,144,10,0)} }
+@keyframes pulseClayRing { 0%,100%{box-shadow:0 0 0 0 rgba(194,75,42,0.35)} 50%{box-shadow:0 0 0 8px rgba(194,75,42,0)} }
+
+.animate-fade-up      { animation: fadeUp 0.55s cubic-bezier(0.16,1,0.3,1) forwards; }
+.animate-fade-in      { animation: fadeIn 0.4s ease forwards; }
+.animate-spin-slow    { animation: spinSlow 3s linear infinite; }
+.animate-orbit        { animation: orbitFloat 4s ease-in-out infinite; }
+.animate-verdict      { animation: verdictReveal 0.7s cubic-bezier(0.16,1,0.3,1) forwards; }
+.animate-pulse-cobalt { animation: pulseCobalt 2.2s infinite; }
+.animate-pulse-gold   { animation: pulseGold 2.2s infinite; }
+.animate-pulse-clay   { animation: pulseClayRing 2s infinite; }
+
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+
+/* === Surfaces === */
+.card    { background: #fff; border: 1px solid var(--color-border); border-radius: 14px; }
+.card-sm { background: #fff; border: 1px solid var(--color-border); border-radius: 10px; }
+
+.terrain-region { border-left: 3px solid transparent; transition: background 0.15s ease; }
+
+/* === Verdict / risk === */
+.verdict-proceed      { color: var(--color-green); }
+.verdict-sprint       { color: var(--color-gold); }
+.verdict-conditional  { color: var(--color-cobalt); }
+.verdict-redesign     { color: var(--color-clay); }
+.verdict-insufficient { color: var(--color-stone); }
+.risk-low    { color: var(--color-green); }
+.risk-medium { color: var(--color-gold); }
+.risk-high   { color: var(--color-clay); }
+.risk-critical { color: #991b1b; }
+
+*:focus-visible { outline: 2px solid var(--color-cobalt); outline-offset: 2px; border-radius: 4px; }
