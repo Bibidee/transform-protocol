@@ -49,11 +49,11 @@ export async function createCase(
   const caseId = `case_${nanoid()}`;
   const packetJson = JSON.stringify({ ...form, created_at: nowIso() });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const txHash = await (client as any).sendTransaction({
+  const txHash = await client.writeContract({
     address: addr(),
     functionName: "create_case",
     args: [caseId, packetJson],
+    value: BigInt(0),
   });
 
   onStatus?.("pending");
@@ -78,11 +78,11 @@ export async function addImplementationPlan(
   const client = await getClientReady();
   const planJson = JSON.stringify({ ...form, added_at: nowIso() });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const txHash = await (client as any).sendTransaction({
+  const txHash = await client.writeContract({
     address: addr(),
     functionName: "add_implementation_plan",
     args: [caseId, planJson],
+    value: BigInt(0),
   });
 
   onStatus?.("pending");
@@ -104,11 +104,11 @@ export async function addSignal(
   const signalId = `sig_${nanoid()}`;
   const signalJson = JSON.stringify({ ...form, signal_id: signalId, added_at: nowIso() });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const txHash = await (client as any).sendTransaction({
+  const txHash = await client.writeContract({
     address: addr(),
     functionName: "add_signal",
     args: [caseId, signalId, signalJson],
+    value: BigInt(0),
   });
 
   onStatus?.("pending");
@@ -133,11 +133,11 @@ export async function addDomain(
   const client = await getClientReady();
   const domainJson = JSON.stringify({ ...form, added_at: nowIso() });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const txHash = await (client as any).sendTransaction({
+  const txHash = await client.writeContract({
     address: addr(),
     functionName: "add_domain",
     args: [caseId, form.domain_name, domainJson],
+    value: BigInt(0),
   });
 
   onStatus?.("pending");
@@ -167,11 +167,11 @@ export async function addEvidence(
     related_plan_ids: [],
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const txHash = await (client as any).sendTransaction({
+  const txHash = await client.writeContract({
     address: addr(),
     functionName: "add_evidence",
     args: [caseId, evidenceId, evidenceJson],
+    value: BigInt(0),
   });
 
   onStatus?.("pending");
@@ -194,11 +194,11 @@ export async function requestConsensus(
 ): Promise<{ txHash: `0x${string}`; explorerUrl: string }> {
   const client = await getClientReady();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const txHash = await (client as any).sendTransaction({
+  const txHash = await client.writeContract({
     address: addr(),
     functionName: "request_consensus",
     args: [caseId],
+    value: BigInt(0),
   });
 
   onStatus?.("pending");
@@ -214,8 +214,7 @@ export async function requestConsensus(
 export async function getCase(caseId: string): Promise<TransformationCase | null> {
   try {
     const client = await getClientReady();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const raw = await (client as any).readContract({
+    const raw = await client.readContract({
       address: addr(),
       functionName: "get_case",
       args: [caseId],
@@ -235,8 +234,7 @@ export async function getCase(caseId: string): Promise<TransformationCase | null
 export async function getAllCaseIds(): Promise<string[]> {
   try {
     const client = await getClientReady();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const raw = await (client as any).readContract({
+    const raw = await client.readContract({
       address: addr(),
       functionName: "get_all_case_ids",
       args: [],
@@ -255,8 +253,7 @@ export async function getAllCaseIds(): Promise<string[]> {
 export async function getOwnerCases(ownerAddress: string): Promise<string[]> {
   try {
     const client = await getClientReady();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const raw = await (client as any).readContract({
+    const raw = await client.readContract({
       address: addr(),
       functionName: "get_owner_cases",
       args: [ownerAddress],
@@ -275,8 +272,7 @@ export async function getOwnerCases(ownerAddress: string): Promise<string[]> {
 export async function getProtocolStats(): Promise<ProtocolStats> {
   try {
     const client = await getClientReady();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const raw = await (client as any).readContract({
+    const raw = await client.readContract({
       address: addr(),
       functionName: "get_protocol_stats",
       args: [],
